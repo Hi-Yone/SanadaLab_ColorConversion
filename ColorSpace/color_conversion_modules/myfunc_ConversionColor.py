@@ -5,10 +5,11 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # RGBとxyz間の変換
 class RGB_and_xyz:
+
+        # ====================================
+        # 任意のRGBの三刺激値(0~255)からxyz色度座標値を求める。
+        # ====================================
         def RGB2xyz(self, R, G, B):
-                # ====================================
-                # 任意のRGBの三刺激値(0~255)からxyz色度座標値を求める。
-                # ====================================
                 x, y, z = 0, 0, 0   # 求めるx,y,z
 
                 R = R/255; G = G/255; B = B/255 # 0~1に正規化
@@ -22,25 +23,20 @@ class RGB_and_xyz:
                 to_XYZ_matrix = np.array([Xrgb, Yrgb, Zrgb])    # XYZへの変換行列
                 RGB = np.array([R, G, B])                       # 変換元RGB値
                 X, Y, Z = np.dot(to_XYZ_matrix, RGB.T)          # 内積をとる
-
                 S = X+Y+Z       # X,Y,Zの総和
 
                 x=X/S; y=Y/S; z=Z/S
-                x = np.round(x, 6)
-                y = np.round(y, 6)
-                z = np.round(z, 6)
+                x = np.round(x, 6); y = np.round(y, 6); z = np.round(z, 6)
+                return (x, y, z, Y)     # 戻り値：x,y,zの座標値と輝度値Y
 
-                return (x, y, z, Y)
-
-
+        # ====================================
+        # 任意のxyの座標値と輝度値(cd/m^2)からRGB刺激値(0~255)を求める。
+        # ====================================
         def xyL2RGB(self, x, y, L):   # 入力するx,yは高精度の値でないといけない。(少数6桁以上)
-                # ====================================
-                # 任意のxyの座標値と輝度値(cd/m^2)からRGB刺激値(0~255)を求める。
-                # ====================================
                 R, G, B = 0, 0, 0
 
                 # 三刺激値XYZを求める
-                X = (x/y)*L             # 
+                X = (x/y)*L
                 Y = L                   # Yは輝度値
                 Z = ((1-x-y)/y)*L       # Zはxとyから定まる
 
@@ -50,12 +46,12 @@ class RGB_and_xyz:
                 to_RGB_matrix = np.linalg.inv(to_RGB_matrix)            # 逆行列を求める
                 XYZ = np.array([X, Y, Z])                               # 変換元行列
                 R, G, B = np.dot(to_RGB_matrix, XYZ.T)                  # 内積をとる
+                R = int(R*255); G = int(G*255); B = int(B*255)          # 0~255の範囲に戻す
+                return (R, G, B)        # RGBの刺激値
 
-                R = int(R*255); G = int(G*255); B = int(B*255)         # 0~255の範囲に戻す
-                
-                return (R, G, B)
-
-
+        # ====================================
+        # ３次元空間にxyz座標を色分けしてプロットする
+        # ====================================
         def xyz_for_plot(self):     # xyzグラフ表示用関数
                 fig = plt.figure()
                 ax = Axes3D(fig)
@@ -70,55 +66,79 @@ class RGB_and_xyz:
                                         x, y, z, Y = self.RGB2xyz(k, j, i)
                                         x_arr.append(x); y_arr.append(y); z_arr.append(z)
                                         R, G, B = self.xyL2RGB(x, y, Y)
-                                        colCode = (R/255, G/255, B/255)
+                                        colCode = (R/255, G/255, B/255) # プロット時の色の範囲は0~1
                                         ax.scatter(x, y, z, color=colCode)
-
 
 
 
 # Luvとxyzの間の変換
 class Luv_and_xyz:
-        def RGB2Luv(self, R, G, B):     # 任意のRGB値からL*u*v*の座標値を求める
-                # ====================================
-                # RGBの三刺激値(0~255)からL*u*v*色度座標値を求める。
-                # ====================================
 
+        # ====================================
+        # RGBの三刺激値(0~255)からL*u*v*色度座標値を求める。
+        # ====================================
+        def RGB2Luv(self, R, G, B):
                 inst_RGB_and_xyz = RGB_and_xyz()        # インスタンス生成
 
-                L=0; u=0; v=0       # 求めるL,u,v
-                x, y, z, Y = inst_RGB_and_xyz.RGB2xyz(R, G, B)   # zは使わない。
+                L_star=0; u_star=0; v_star=0            # 求めるL,u,v
 
+                x, y, z, Y = inst_RGB_and_xyz.RGB2xyz(R, G, B)   # 初めにxyz座標値に変換（zは使用しない。）
                 # Y, u', v'：試料物体の刺激値及び色度
-                Y = 0               # Y : 輝度値
                 ud = (4*x)/(-2*x + 12*y + 3)            # u'
-                vd = (9*y)/(-2*x + 12*y + 3*z)            # v'
+                vd = (9*y)/(-2*x + 12*y + 3)            # v'
 
-                '''
-                Y0, u'0, v'0：基準白色面の刺激値及び色度（白色点における色度のこと。）
-                u'0とv'0を定めるにはu'v'色度図を作成して白色点を調べる必要がある。
-                (今回は2°標準観測者における標準光源Cの条件下で考える。 wikipedia)
-                
-                # 今回使用した(u'0,v'0)の値とY,Y0,L*の定義がきちんとなされていないので、
-                # 方法が分かり次第、定義する。
-                '''
-                Y0 = 0              # Y0 : 輝度値
-                ud0 = 0.2009        # ud0 : u'0
-                vd0 = 0.4610        # vd0 : v'0
+                # 光源はD65を使用する。Yn =100に規格化されている。
+                # https://plie.org/shopICC/ICClabo/Labo/cmsnote.html に完全拡散反射面がなんたらとか、D65だとどうだとかが書いてある。
+                Xn = 95.04; Yn = 100; Zn = 108.89            # 感染拡散反射面におけるXYZ刺激値
 
-                # L*は物体色にのみ定義される.
+                udn = (4*Xn)/(Xn + 15*Yn + 3*Zn)        # u'n：完全拡散反射面の色度
+                vdn = (9*Yn)/(Xn + 15*Yn + 3*Zn)        # v'n：完全拡散反射面の色度
+
                 # L*のとる範囲は0~100
-                # L_star = 116*(Y/Y0)**(-1/3) - 16  # L*を求める
-                L_star = 50                         # よくわからなかったので、教科書のL*=50の場合でやってみる。
-                u_star = 13*L_star*(ud - ud0)       # u*
-                v_star = 13*L_star*(vd - vd0)       # v*
+                YYn = Y/Yn
+                # L*がX,Y,Zの値に対して適用可能かを判定
+                if YYn >0.008856:
+                        modified_YYn = YYn**(1/3)          # 修正
+                if YYn <=0.008856:
+                        modified_YYn = 7.787*YYn + 16/116  # 修正
+                
+                L_star = 116* modified_YYn - 16         # L*を求める
+                u_star = 13*L_star*(ud - udn)           # u*を求める
+                v_star = 13*L_star*(vd - vdn)           # v*を求める
 
-                return (L_star,u_star,v_star)
+                return (L_star,u_star,v_star)   # 戻り値：L*, u*, v*
+        
+        def Luv2RGB(self, L_star, u_star, v_star):
+                R=0; G=0; B=0
 
+                return (R, G, B)
+
+        def Luv_for_plot(self):
+                inst_RGB_and_xyz = RGB_and_xyz()
+                fig = plt.figure()
+                ax = Axes3D(fig)
+                ax.view_init(elev=0, azim=45)
+                ax.grid()
+
+                L_star_arr=[]; u_star_arr=[]; v_star_arr=[]
+
+                for i in range(1,256,16):
+                        for j in range(1,256,16):
+                                for k in range(1, 256, 16):
+                                        L_star, u_star, v_star = self.RGB2Luv(k, j, i)
+                                        L_star_arr.append(L_star); u_star_arr.append(u_star); v_star_arr.append(v_star)
+                                        x, y, z, Y = inst_RGB_and_xyz.RGB2xyz(k, j, i)
+                                        R, G, B = inst_RGB_and_xyz.xyL2RGB(x, y, Y)     # プロットのカラー指定用にRGBを求める
+
+                                        colCode = (R/255, G/255, B/255) # プロット時の色の範囲は0~1
+                                        colCode = (R/255, G/255, B/255) # プロット時の色の範囲は0~1
+                                        ax.scatter(L_star, u_star, v_star, color=colCode)
 
 
 #%%
 
-
+inst = Luv_and_xyz()
+inst.RGB2Luv(255, 0, 0)
 
 #%%
 
