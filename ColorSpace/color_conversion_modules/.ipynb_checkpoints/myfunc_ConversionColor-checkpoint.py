@@ -72,7 +72,7 @@ class RGB_and_xyz:
 
 
 # Luvとxyzの間の変換
-class Luv_and_RGB:
+class Luv_and_xyz:
 
         # ====================================
         # RGBの三刺激値(0~255)からL*u*v*色度座標値を求める。
@@ -89,7 +89,7 @@ class Luv_and_RGB:
 
                 # 光源はD65を使用する。Yn =100に規格化されている。
                 # http://yamatyuu.net/other/color/cie1976luv/index.html に完全拡散反射面がなんたらとか、D65だとどうだとかが書いてある。
-                Xn = 95.04; Yn = 100; Zn = 108.89            # 完全拡散反射面におけるXYZ刺激値
+                Xn = 95.04; Yn = 100; Zn = 108.89            # 感染拡散反射面におけるXYZ刺激値
 
                 udn = (4*Xn)/(Xn + 15*Yn + 3*Zn)        # u'n：完全拡散反射面の色度
                 vdn = (9*Yn)/(Xn + 15*Yn + 3*Zn)        # v'n：完全拡散反射面の色度
@@ -107,12 +107,9 @@ class Luv_and_RGB:
                 v_star = 13*L_star*(vd - vdn)           # v*を求める
 
                 return (L_star,u_star,v_star)   # 戻り値：L*, u*, v*
-
-        # ====================================
-        # L*u*v*色度座標値からRGB(0~255)を求める。
-        # ====================================        
+        
         def Luv2RGB(self, L_star, u_star, v_star):
-                R=0; G=0; B=0   # 求めるRGB
+                R=0; G=0; B=0
 
                 # 光源はD65を使用する。Yn =100に規格化されている。
                 # http://yamatyuu.net/other/color/cie1976luv/index.html に完全拡散反射面がなんたらとか、D65だとどうだとかが書いてある。
@@ -125,12 +122,12 @@ class Luv_and_RGB:
                 vd = v_star/(13*L_star) + vdn           # vd : 
                 
                 if L_star <= 8:                         # 
-                        Y = Yn*L_star*(3/29)**3         # Yの刺激値
+                        Y = Yn*L_star*(3/29)**2         # Yの刺激値
                 elif L_star > 8:                        # 
                         Y = Yn*((L_star+16)/116)**3     # Yの刺激値
 
-                X = (9*Y*ud)/(4*vd)                     # Xの刺激値
-                Z = Y*(12-3*ud-20*vd)/(4*vd)            # Zの刺激値
+                X = (9*Y*ud)/4*vd                       # Xの刺激値
+                Z = Y*((12-3*ud-20*vd)/4*vd)            # Zの刺激値
 
                 to_RGB_matrix = np.array([[2.7689, 1.7517, 1.1302],     # RGBへの変換行列
                                         [1.0, 4.5907, 0.0601],
@@ -165,69 +162,10 @@ class Luv_and_RGB:
                                         ax.scatter(L_star, u_star, v_star, color=colCode)
 
 
-class Lab_and_RGB:
-
-        # ====================================
-        # RGBの三刺激値(0~255)からL*u*v*色度座標値を求める。
-        # ====================================
-        def RGB2Lab(self, R, G, B):
-                inst_RGB_and_xyz = RGB_and_xyz()        # インスタンス生成
-
-                L_star=0; a_star=0; b_star=0;           # 求めるLab
-
-                x, y, z, Y = inst_RGB_and_xyz.RGB2xyz(R, G, B)   # 初めにxyz座標値に変換（zは使用しない。）
-                X = (x/y)*L
-                Y = L                   # Yは輝度値
-                Z = ((1-x-y)/y)*L       # Zはxとyから定まる
-
-                # 光源はD65を使用する。Yn =100に規格化されている。
-                # http://yamatyuu.net/other/color/cie1976luv/index.html に完全拡散反射面がなんたらとか、D65だとどうだとかが書いてある。
-                Xn = 95.04; Yn = 100; Zn = 108.89            # 完全拡散反射面におけるXYZ刺激値
-
-                # L*のとる範囲は0~100
-                YYn = Y/Yn
-                # L*がX,Y,Zの値に対して適用可能かを判定
-                if YYn >0.008856:
-                        modified_YYn = YYn**(1/3)          # 修正
-                if YYn <=0.008856:
-                        modified_YYn = 7.787*YYn + 16/116  # 修正
-                
-                XXn = X/Xn
-                if XXn >0.008856:
-                        modified_XXn = XXn**(1/3)          # 修正
-                if XXn <=0.008856:
-                        modified_XXn = 7.787*XXn + 16/116  # 修正
-
-                ZZn = Z/Zn
-                if ZZn >0.008856:
-                        modified_ZZn = ZZn**(1/3)          # 修正
-                if ZZn <=0.008856:
-                        modified_ZZn = 7.787*ZZn + 16/116  # 修正
-
-                L_star = 116* modified_YYn - 16                 # L*を求める
-                a_star = 500*(modified_XXn - modified_YYn)      # a*を求める
-                b_star = 200*(modified_YYn - modified_ZZn)      # b*を求める
-
-                return (L_star, a_star, b_star)         # 戻り値：L*, a*, b*
-
-
-
-class lms_and_RGB:
-        def RGB2lms(self, R, G, B):
-                l=0; m=0; s=0           # 求めるlms
-
-
-                return 0
-
-
-
-
 #%%
 
-inst = Luv_and_RGB()
-l ,u, v= inst.RGB2Luv(0, 0, 255)
-print(l, u, v)
-print(inst.Luv2RGB(l, u, v))
+# inst = Luv_and_xyz()
+# print(inst.Luv2RGB(8.991442404369852, 49.73511765982151, 4.461629527935298))
 
 #%%
 
