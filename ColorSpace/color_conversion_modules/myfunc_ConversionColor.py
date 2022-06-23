@@ -56,6 +56,7 @@ class RGB_to_xyz:
                 fig = plt.figure()
                 ax = Axes3D(fig)
                 ax.view_init(elev=0, azim=45)
+                ax.set_title('XYZ color space')
                 ax.grid()
 
                 x_arr=[]; y_arr=[]; z_arr=[]
@@ -143,12 +144,15 @@ class Luv_to_RGB:
 
                 return (R, G, B)        # RGBの刺激値
 
-
+        # ====================================
+        # ３次元空間にL*u*v*座標を色分けしてプロットする
+        # ====================================
         def Luv_for_plot(self):
                 inst_RGB_to_xyz = RGB_to_xyz()
                 fig = plt.figure()
                 ax = Axes3D(fig)
                 ax.view_init(elev=0, azim=45)
+                ax.set_title('L*u*v*  color space')
                 ax.grid()
 
                 L_star_arr=[]; u_star_arr=[]; v_star_arr=[]
@@ -170,14 +174,15 @@ class Luv_to_RGB:
 class Lab_to_RGB:
 
         # ====================================
-        # RGBの三刺激値(0~255)からL*u*v*色度座標値を求める。
+        # RGBの三刺激値(0~255)からL*a*b*色度座標値を求める。
         # ====================================
         def RGB2Lab(self, R, G, B):
                 inst_RGB_to_xyz = RGB_to_xyz()        # インスタンス生成
 
                 L_star=0; a_star=0; b_star=0;           # 求めるLab
 
-                x, y, z, Y = inst_RGB_to_xyz.RGB2xyz(R, G, B)   # 初めにxyz座標値に変換（zは使用しない。）
+                xyz, XYZ = inst_RGB_to_xyz.RGB2xyz(R, G, B)   # 初めにxyz座標値に変換（zは使用しない。）
+                x=xyz[0]; y=xyz[1]; L=XYZ[1]
                 X = (x/y)*L
                 Y = L                   # Yは輝度値
                 Z = ((1-x-y)/y)*L       # Zはxとyから定まる
@@ -213,6 +218,41 @@ class Lab_to_RGB:
                 return (L_star, a_star, b_star)         # 戻り値：L*, a*, b*
 
 
+        # ====================================
+        # L*u*v*色度座標値からRGB(0~255)を求める。
+        # ====================================   
+        def Lab2RGB(self, L_star, a_star, b_star):
+                R=0; G=0; B=0           # 求めるRGB値
+                return (R, G, B)        # 戻り値：R,G,B
+
+
+        # ====================================
+        # ３次元空間にL*a*b*座標を色分けしてプロットする
+        # ====================================
+        def Lab_for_plot(self):
+                inst_RGB_to_xyz = RGB_to_xyz()
+                fig = plt.figure()
+                ax = Axes3D(fig)
+                ax.view_init(elev=0, azim=45)
+                ax.set_title('L*a*b*  color space')
+                ax.grid()
+
+                L_star_arr=[]; a_star_arr=[]; b_star_arr=[]
+
+                for i in range(1,256,16):
+                        for j in range(1,256,16):
+                                for k in range(1, 256, 16):
+                                        L_star, a_star, b_star = self.RGB2Lab(k, j, i)
+                                        L_star_arr.append(L_star); a_star_arr.append(a_star); b_star_arr.append(b_star)
+                                        xyz, XYZ= inst_RGB_to_xyz.RGB2xyz(k, j, i)
+                                        x=xyz[0]; y=xyz[1]; Y=XYZ[1]
+                                        R, G, B = inst_RGB_to_xyz.xyL2RGB(x, y, Y)     # プロットのカラー指定用にRGBを求める
+
+                                        colCode = (R/255, G/255, B/255) # プロット時の色の範囲は0~1
+                                        colCode = (R/255, G/255, B/255) # プロット時の色の範囲は0~1
+                                        ax.scatter(L_star, a_star, b_star, color=colCode)
+
+
 
 class lms_to_RGB:
         def RGB2lms(self, R, G, B):
@@ -226,8 +266,9 @@ class lms_to_RGB:
 
 #%%
 
-inst = Luv_to_RGB()
-inst.Luv_for_plot()
+inst = RGB_to_xyz()
+inst.xyz_for_plot()
+
 
 # inst = Luv_to_RGB()
 # l ,u, v= inst.RGB2Luv(0, 0, 255)
