@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 # RGBとxyz間の変換
-class RGB_and_xyz:
+class RGB_to_xyz:
 
         # ====================================
         # 任意のRGBの三刺激値(0~255)からxyz色度座標値を求める。
@@ -27,7 +27,7 @@ class RGB_and_xyz:
 
                 x=X/S; y=Y/S; z=Z/S
                 x = np.round(x, 6); y = np.round(y, 6); z = np.round(z, 6)
-                return (x, y, z, Y)     # 戻り値：x,y,zの座標値と輝度値Y
+                return ((x, y, z), (X,Y,Z))     # 戻り値：x,y,zの座標値と輝度値Y
 
         # ====================================
         # 任意のxyの座標値と輝度値(cd/m^2)からRGB刺激値(0~255)を求める。
@@ -63,26 +63,27 @@ class RGB_and_xyz:
                 for i in range(1,256,16):
                         for j in range(1,256,16):
                                 for k in range(1, 256, 16):
-                                        x, y, z, Y = self.RGB2xyz(k, j, i)
+                                        xyz, XYZ = self.RGB2xyz(k, j, i)
+                                        x=xyz[0]; y=xyz[1]; z=xyz[2]; Y=XYZ[1]
                                         x_arr.append(x); y_arr.append(y); z_arr.append(z)
                                         R, G, B = self.xyL2RGB(x, y, Y)
                                         colCode = (R/255, G/255, B/255) # プロット時の色の範囲は0~1
                                         ax.scatter(x, y, z, color=colCode)
 
 
-
 # Luvとxyzの間の変換
-class Luv_and_RGB:
+class Luv_to_RGB:
 
         # ====================================
         # RGBの三刺激値(0~255)からL*u*v*色度座標値を求める。
         # ====================================
         def RGB2Luv(self, R, G, B):
-                inst_RGB_and_xyz = RGB_and_xyz()        # インスタンス生成
+                inst_RGB_to_xyz = RGB_to_xyz()        # インスタンス生成
 
                 L_star=0; u_star=0; v_star=0            # 求めるL,u,v
 
-                x, y, z, Y = inst_RGB_and_xyz.RGB2xyz(R, G, B)   # 初めにxyz座標値に変換（zは使用しない。）
+                xyz, XYZ = inst_RGB_to_xyz.RGB2xyz(R, G, B)   # 初めにxyz座標値に変換（zは使用しない。）
+                x=xyz[0]; y=xyz[1]; z=xyz[2]; Y=XYZ[1]
                 # Y, u', v'：試料物体の刺激値及び色度
                 ud = (4*x)/(-2*x + 12*y + 3)            # u'
                 vd = (9*y)/(-2*x + 12*y + 3)            # v'
@@ -144,7 +145,7 @@ class Luv_and_RGB:
 
 
         def Luv_for_plot(self):
-                inst_RGB_and_xyz = RGB_and_xyz()
+                inst_RGB_to_xyz = RGB_to_xyz()
                 fig = plt.figure()
                 ax = Axes3D(fig)
                 ax.view_init(elev=0, azim=45)
@@ -157,25 +158,26 @@ class Luv_and_RGB:
                                 for k in range(1, 256, 16):
                                         L_star, u_star, v_star = self.RGB2Luv(k, j, i)
                                         L_star_arr.append(L_star); u_star_arr.append(u_star); v_star_arr.append(v_star)
-                                        x, y, z, Y = inst_RGB_and_xyz.RGB2xyz(k, j, i)
-                                        R, G, B = inst_RGB_and_xyz.xyL2RGB(x, y, Y)     # プロットのカラー指定用にRGBを求める
+                                        xyz, XYZ= inst_RGB_to_xyz.RGB2xyz(k, j, i)
+                                        x=xyz[0]; y=xyz[1]; Y=XYZ[1]
+                                        R, G, B = inst_RGB_to_xyz.xyL2RGB(x, y, Y)     # プロットのカラー指定用にRGBを求める
 
                                         colCode = (R/255, G/255, B/255) # プロット時の色の範囲は0~1
                                         colCode = (R/255, G/255, B/255) # プロット時の色の範囲は0~1
                                         ax.scatter(L_star, u_star, v_star, color=colCode)
 
 
-class Lab_and_RGB:
+class Lab_to_RGB:
 
         # ====================================
         # RGBの三刺激値(0~255)からL*u*v*色度座標値を求める。
         # ====================================
         def RGB2Lab(self, R, G, B):
-                inst_RGB_and_xyz = RGB_and_xyz()        # インスタンス生成
+                inst_RGB_to_xyz = RGB_to_xyz()        # インスタンス生成
 
                 L_star=0; a_star=0; b_star=0;           # 求めるLab
 
-                x, y, z, Y = inst_RGB_and_xyz.RGB2xyz(R, G, B)   # 初めにxyz座標値に変換（zは使用しない。）
+                x, y, z, Y = inst_RGB_to_xyz.RGB2xyz(R, G, B)   # 初めにxyz座標値に変換（zは使用しない。）
                 X = (x/y)*L
                 Y = L                   # Yは輝度値
                 Z = ((1-x-y)/y)*L       # Zはxとyから定まる
@@ -212,7 +214,7 @@ class Lab_and_RGB:
 
 
 
-class lms_and_RGB:
+class lms_to_RGB:
         def RGB2lms(self, R, G, B):
                 l=0; m=0; s=0           # 求めるlms
 
@@ -224,10 +226,13 @@ class lms_and_RGB:
 
 #%%
 
-inst = Luv_and_RGB()
-l ,u, v= inst.RGB2Luv(0, 0, 255)
-print(l, u, v)
-print(inst.Luv2RGB(l, u, v))
+inst = Luv_to_RGB()
+inst.Luv_for_plot()
+
+# inst = Luv_to_RGB()
+# l ,u, v= inst.RGB2Luv(0, 0, 255)
+# print(l, u, v)
+# print(inst.Luv2RGB(l, u, v))
 
 #%%
 
